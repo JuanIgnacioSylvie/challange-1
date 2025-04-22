@@ -1,25 +1,21 @@
 <template>
-  <div class="max-w-2xl mx-auto p-6 bg-white rounded shadow-lg">
+  <Card>
     <h1 class="text-3xl font-bold mb-6 text-center">Resultados: {{ poll?.question }}</h1>
-    <ul class="space-y-4">
-      <li
-        v-for="option in poll?.options"
-        :key="option.id"
-        class="flex justify-between border-b border-gray-200 pb-2"
-      >
-        <span class="text-lg">{{ option.text }}</span>
-        <span class="text-lg font-semibold">{{ option.votes }} votos</span>
-      </li>
+    <ul>
+      <PollResultItem :options="poll?.options || []" />
     </ul>
-  </div>
+  </Card>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePollStore } from '@/stores/pollStore'
-const pollStore = usePollStore()
+import Card from '@/components/BaseCard.vue'
+import PollResultItem from '@/components/PollResultItem.vue'
+
 const route = useRoute()
-const pollId = route.params.id as string
-const poll = computed(() => pollStore.getPollById(pollId))
+const pollStore = usePollStore()
+const id = route.params.id as string
+const poll = computed(() => pollStore.getPollById(id))
 </script>

@@ -1,77 +1,84 @@
 <template>
-  <div class="max-w-3xl mx-auto p-6 bg-white rounded shadow-lg">
+  <Card>
     <h1 class="text-3xl font-bold mb-6 text-center">{{ form?.title }}</h1>
+
     <form @submit.prevent="submitForm" class="space-y-6">
-      <div
-        v-for="question in form?.questions"
-        :key="question.id"
-        class="border border-gray-300 p-4 rounded shadow-sm"
-      >
-        <label class="block mb-2">{{ question.question }}</label>
-        <div v-if="question.type === 'short'">
-          <input
-            v-model="responses[question.id]"
-            type="text"
-            :placeholder="question.placeholder"
-            class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500 transition"
-          />
-        </div>
-        <div v-else-if="question.type === 'long'">
-          <textarea
-            v-model="responses[question.id]"
-            :placeholder="question.placeholder"
-            class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500 transition"
-          ></textarea>
-        </div>
-        <div v-else-if="question.type === 'number'">
-          <input
-            v-model.number="responses[question.id]"
-            type="number"
-            :placeholder="question.placeholder"
-            class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500 transition"
-          />
-        </div>
-        <div v-else-if="question.type === 'radio'">
-          <div
-            v-for="(option, optIndex) in question.options"
-            :key="optIndex"
-            class="flex items-center mb-2"
-          >
-            <input
-              type="radio"
-              :name="question.id"
-              :value="option"
-              v-model="responses[question.id]"
-              class="mr-2 form-radio text-blue-600"
-            />
-            <span>{{ option }}</span>
-          </div>
-        </div>
-      </div>
+      <QuestionRenderer
+        v-for="q in questions"
+        :key="q.id"
+        :question="q"
+        v-model="responses[q.id]"
+      />
       <div class="text-center">
-        <button
-          type="submit"
-          class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded transition-all duration-300"
-        >
-          Enviar
-        </button>
+        <BaseButton type="submit">Enviar Respuestas</BaseButton>
       </div>
     </form>
-  </div>
+  </Card>
 </template>
 
-<script lang="ts" setup>
-import { reactive, computed } from 'vue'
+<script setup lang="ts">
+// Vue
+import { computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+// Store
 import { useFormStore } from '@/stores/formStore'
+
+// Componentes
+import Card from '@/components/BaseCard.vue'
+import BaseButton from '@/components/BaseButton.vue'
+import QuestionRenderer from '@/components/QuestionRenderer.vue'
+
+// Tipos locales
+type QuestionType = 'short' | 'long' | 'number' | 'radio'
+
+interface RawQuestion {
+  id: string
+  question: string
+  type: QuestionType
+  options?: string[]
+  placeholder?: string
+  required?: boolean
+}
+
+interface Question {
+  id: string
+  question: string
+  type: QuestionType
+  options: string[] // siempre definido
+  placeholder: string // siempre definido
+  required: boolean
+}
+
 type Answer = string | number
 type FormAnswers = Record<string, Answer>
-const formStore = useFormStore()
+
+// Ruta y store
 const route = useRoute()
 const router = useRouter()
+const formStore = useFormStore()
 const formId = route.params.id as string
+
+// Formulario original
 const form = computed(() => formStore.getFormById(formId))
+
+// Normalizamos el array de preguntas para que options y placeholder nunca sean undefined
+const questions = computed<Question[]>(() => {
+  const raw: RawQuestion[] = form.value?.questions ?? []
+  return raw.map((q) => ({
+    id: q.id,
+    question: q.question,
+    type: q.type,
+    options: q.options ?? [],
+    placeholder: q.placeholder ?? '',
+    required: q.required ?? false,
+  }))
+})
+
+// Respuestas reactivas
 const responses = reactive<FormAnswers>({})
+
+// Envío
 function submitForm() {
   formStore.addResponse(formId, { ...responses })
   router.push(`/form/results/${formId}`)

@@ -1,42 +1,55 @@
 <template>
-  <div class="max-w-2xl mx-auto p-6 bg-white rounded shadow-lg">
-    <h1 class="text-3xl font-bold mb-6 text-center">{{ poll?.question }}</h1>
-    <div v-for="option in poll?.options" :key="option.id" class="mb-4">
-      <label class="flex items-center space-x-3">
+  <Card>
+    <h1 class="text-3xl font-bold mb-6 text-center">
+      {{ poll?.question }}
+    </h1>
+
+    <form @submit.prevent="submitVote" class="space-y-4">
+      <div v-for="opt in poll?.options" :key="opt.id" class="flex items-center space-x-3">
         <input
           type="radio"
-          :value="option.id"
+          :value="opt.id"
           v-model="selectedOption"
           class="form-radio text-blue-600"
         />
-        <span class="text-lg">{{ option.text }}</span>
-      </label>
-    </div>
-    <div class="text-center">
-      <button
-        @click="submitVote"
-        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded transition-all duration-300"
-      >
-        Votar
-      </button>
-    </div>
-  </div>
+        <span class="text-lg">{{ opt.text }}</span>
+      </div>
+
+      <div class="text-center mt-4">
+        <BaseButton type="submit" :disabled="!selectedOption"> Votar </BaseButton>
+      </div>
+    </form>
+  </Card>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePollStore } from '@/stores/pollStore'
-const pollStore = usePollStore()
+
+import type { Poll } from '@/types/poll'
+
+// Componentes
+import Card from '@/components/BaseCard.vue'
+import BaseButton from '@/components/BaseButton.vue'
+
 const route = useRoute()
 const router = useRouter()
+const pollStore = usePollStore()
+
+// ID que llega por ruta
 const pollId = route.params.id as string
-const selectedOption = ref<string | null>(null)
-const poll = computed(() => pollStore.getPollById(pollId))
+
+// Usamos generics para que TS sepa que `poll` es Poll | undefined
+const poll = computed<Poll | undefined>(() => pollStore.getPollById(pollId))
+
+// Ref para la opción seleccionada
+const selectedOption = ref<string>('')
+
 function submitVote() {
-  if (poll.value && selectedOption.value) {
-    pollStore.votePoll(poll.value.id, selectedOption.value)
-    router.push(`/poll/results/${poll.value.id}`)
-  }
+  if (!poll.value || !selectedOption.value) return
+
+  pollStore.votePoll(poll.value.id, selectedOption.value)
+  router.push(`/poll/results/${poll.value.id}`)
 }
 </script>
